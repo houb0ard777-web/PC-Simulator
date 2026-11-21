@@ -1,0 +1,36 @@
+
+name: Build PC Simulator APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Unity Android
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: .
+          unityVersion: 2022.3.62f1
+          targetPlatform: Android
+          buildMethod: PCSim.Editor.BuildAndroid.Build
+          buildsPath: Builds
+          versioning: None
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: PC-Simulator-Android
+          path: Builds/Android/PC-Simulator.apk
+          if-no-files-found: error
