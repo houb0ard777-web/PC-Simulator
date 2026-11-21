@@ -1,0 +1,42 @@
+
+name: Unpack Unity Project
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract Unity project
+        run: |
+          python3 - <<'PY'
+          import zipfile
+          import pathlib
+
+          archive = next(pathlib.Path(".").glob("PC-Simulator-Unity-Source*.zip"))
+          with zipfile.ZipFile(archive) as z:
+              z.extractall("extracted")
+
+          root = pathlib.Path("extracted")
+          candidates = [p for p in root.rglob("Assets") if p.is_dir() and (p.parent / "Packages").is_dir() and (p.parent / "ProjectSettings").is_dir()]
+          if not candidates:
+              raise RuntimeError("Unity project folders not found")
+          import shutil
+          project = candidates[0].parent
+          for name in ["Assets", "Packages", "ProjectSettings"]:
+              shutil.copytree(project / name, name, dirs_exist_ok=True)
+          PY
+
+      - name: Commit extracted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Assets Packages ProjectSettings
+          git diff --cached --quiet || git commit -m "Add Unity project source"
+          git push
